@@ -1,11 +1,20 @@
 require('dotenv').config();
 const express = require('express');
+const userRouter = require('./routers/users');
 
 const app = express();
 const { PORT } = process.env;
 
-app.get('/', (req, res) => {
-  res.send('hello');
+app.use(express.json());
+app.use('/users', userRouter);
+
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, _next) => {
+  if (err instanceof Error) {
+    return res.status(400).send({ error: err.message });
+  }
+
+  return res.status(500).send({ error: 'Internal Server Error' });
 });
 
 app.listen(PORT);
