@@ -13,7 +13,6 @@ async function auth(req, res, next) {
         tokens: { [Op.contains]: [token] },
       },
     });
-    console.log(user);
 
     if (!user) {
       throw new Error();
@@ -24,9 +23,8 @@ async function auth(req, res, next) {
 
     next();
   } catch (e) {
-    console.log(e);
     res.status(401).send({ error: 'Authentication error' });
   }
 }
 
-module.exports = { auth };
+module.exports = auth;
