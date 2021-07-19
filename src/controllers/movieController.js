@@ -1,9 +1,20 @@
+const { Op } = require('sequelize');
 const db = require('../models');
 
 async function getAllMovies() {
   const movies = await db.Movie.findAll();
 
   return movies;
+}
+
+async function getAvailableMovies() {
+  const availableMovies = await db.Movie.findAll({
+    where: {
+      available: { [Op.gt]: 0 },
+    },
+  });
+
+  return availableMovies;
 }
 
 async function getMovieByTitle(title) {
@@ -26,7 +37,7 @@ async function createMovie({ title, director, quantity }) {
     }
 
     movie = await db.Movie.create(
-      { title, director, quantity },
+      { title, director, quantity, available: quantity },
       { transaction }
     );
 
@@ -45,14 +56,14 @@ async function rentMovie(MovieId, UserId) {
 
   const transaction = await db.sequelize.transaction();
   try {
-    const movieExists = await db.Movie.findOne(
+    const movie = await db.Movie.findOne(
       {
         where: { id: MovieId },
       },
       { transaction }
     );
 
-    if (!movieExists) {
+    if (!movie) {
       throw new Error('Movie does not exist!');
     }
 
@@ -67,21 +78,11 @@ async function rentMovie(MovieId, UserId) {
       throw new Error('Movie is already rented');
     }
 
-    const movieQuantity = await db.Movie.findOne(
-      {
-        attributes: ['quantity'],
-        where: { id: MovieId },
-      },
-      { transaction }
-    );
-    const countRent = await db.Rent.count(
-      { where: { MovieId, active: true } },
-      { transaction }
-    );
-
-    if (movieQuantity.quantity - countRent <= 0) {
+    if (movie.available <= 0) {
       throw new Error('Movie not available');
     }
+
+    await movie.decrement('available', { transaction });
 
     await db.Rent.create(
       {
@@ -123,6 +124,13 @@ async function returnMovie(MovieId, UserId) {
     rent.active = false;
     await rent.save({ transaction });
 
+    const movie = await db.Movie.findOne(
+      { where: { id: MovieId } },
+      { transaction }
+    );
+
+    await movie.increment('available', { transaction });
+
     await transaction.commit();
   } catch (e) {
     await transaction.rollback();
@@ -132,6 +140,7 @@ async function returnMovie(MovieId, UserId) {
 
 module.exports = {
   getAllMovies,
+  getAvailableMovies,
   getMovieByTitle,
   createMovie,
   rentMovie,
