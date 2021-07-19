@@ -11,21 +11,26 @@ async function createUser({ name, email, password }) {
     throw new Error('Invalid email');
   }
 
-  let user = await db.User.findOne({ where: { email } });
-  if (user) {
-    throw new Error('Email already in use!');
-  }
-
+  const transaction = await db.sequelize.transaction();
   try {
-    user = await db.User.create({ name, email, password });
-  } catch {
-    throw new Error();
-  }
+    let user = await db.User.findOne({ where: { email } });
 
-  return user;
+    if (user) {
+      throw new Error('Email already in use!');
+    }
+
+    user = await db.User.create({ name, email, password }, { transaction });
+
+    await transaction.commit();
+    return user;
+  } catch (e) {
+    await transaction.rollback();
+    throw new Error(e.message);
+  }
 }
 
 async function generateAuthToken(userId) {
+  const transaction = await db.sequelize.transaction();
   try {
     const user = await db.User.findOne({ where: { id: userId } });
 
@@ -41,10 +46,14 @@ async function generateAuthToken(userId) {
         where: {
           id: user.id,
         },
-      }
+      },
+      { transaction }
     );
+
+    await transaction.commit();
     return token;
   } catch {
+    await transaction.rollback();
     throw new Error();
   }
 }
