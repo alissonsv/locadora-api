@@ -43,7 +43,7 @@ router.post('/logout', auth, async (req, res) => {
 
   await user.save();
 
-  res.send({ user });
+  res.send();
 });
 
 module.exports = router;
