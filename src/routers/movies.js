@@ -32,4 +32,26 @@ router.post('/', auth, async (req, res, next) => {
   }
 });
 
+router.post('/rent/:id', auth, async (req, res, next) => {
+  const movieId = req.params.id;
+
+  try {
+    await movieController.rentMovie(movieId, req.user.id);
+    return res.status(201).send();
+  } catch (e) {
+    return next(e);
+  }
+});
+
+router.post('/return/:id', auth, async (req, res, next) => {
+  const movieId = req.params.id;
+
+  try {
+    const response = await movieController.returnMovie(movieId, req.user.id);
+    res.send(response);
+  } catch (e) {
+    return next(e);
+  }
+});
+
 module.exports = router;
