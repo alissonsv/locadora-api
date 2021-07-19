@@ -16,7 +16,7 @@ router.get('/available', auth, async (req, res) => {
   res.send(availableMovies);
 });
 
-router.get('/search', auth, async (req, res) => {
+router.post('/search', auth, async (req, res) => {
   const { title } = req.body;
 
   const movie = await movieController.getMovieByTitle(title);
